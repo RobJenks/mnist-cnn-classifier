@@ -25,8 +25,7 @@ def main():
                             activation_fn=functions.sigmoid)
 
     print("Training network...")
-    for x in zip(train_data, train_labels_vec):
-        network.train(*x)
+    network.train(1, train_data, train_labels_vec)
 
     for i in range(20):
         result = network.execute(test_data[i])

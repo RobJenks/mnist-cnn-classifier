@@ -1,5 +1,4 @@
 import numpy as np
-from collections import Counter
 import mnist, functions
 
 
@@ -28,8 +27,14 @@ class NeuralNetwork:
         trunc_norm = functions.truncated_norm(mean=0, sd=1, low=-nr, high=nr)
         self.weight_ho = trunc_norm.rvs((self.out_node_count, self.hidden_node_count))
 
-    # Evaluate and adjust network weights based upon the provided training data
-    def train(self, input_vec, target_vec):
+    # Execute training and adjust network weights for the given set of training data, for a set number of epochs
+    def train(self, epochs, input_data, target_labels_vec):
+        for epoch in range(epochs):
+            for x in zip(input_data, target_labels_vec):
+                self.train_item(*x)
+
+    # Evaluate and adjust network weights based upon the provided training item
+    def train_item(self, input_vec, target_vec):
         input_vec, target_vec = (np.array(x, ndmin=2).T for x in [input_vec, target_vec])
 
         # Input -> hidden layer
