@@ -76,7 +76,7 @@ def render_classified_data_sample(network, data, sample_n):
 
 
 def show_image(data):
-    img = data.reshape((28, 28))
+    img = data.reshape((mnist.image_dimensions(), mnist.image_dimensions()))
     plt.imshow(img, cmap="Greys")
     plt.show()
 
