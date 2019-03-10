@@ -10,3 +10,8 @@
 # Exclude python compiled and cached files
 /__pycache__
 */__pycache__/*
+
+# Exclude intermediate raw or binary files generated during classification
+/data/*.csv
+/data/*.binary
+
