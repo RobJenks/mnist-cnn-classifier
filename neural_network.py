@@ -7,9 +7,7 @@ class NeuralNetwork:
 
     def __init__(self, input_node_count, output_node_count, hidden_layers,
                  learning_rate, bias, activation_fn):
-        self.in_node_count = input_node_count
-        self.out_node_count = output_node_count
-        self.layers = [self.in_node_count, *hidden_layers, self.out_node_count]
+        self.layers = [input_node_count, *hidden_layers, output_node_count]
         self.layer_count = len(self.layers)
         self.learn_rate = learning_rate
         self.bias = bias
