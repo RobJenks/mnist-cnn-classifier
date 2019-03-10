@@ -20,10 +20,10 @@ def main():
     test_labels_vec = one_hot_labels(test_labels, mnist.label_count())
 
     network = NeuralNetwork(input_node_count=mnist.image_size(),
-                            hidden_node_count=100,
+                            hidden_layers=[100] * 1,
                             output_node_count=10,
                             learning_rate=0.1,
-                            activation_fn=functions.sigmoid)
+                            activation_fn=functions.sigmoid_logistic)
 
     print("Training network...")
     network.train(1, train_data, train_labels_vec)

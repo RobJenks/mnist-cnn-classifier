@@ -5,28 +5,31 @@ import functions
 
 class NeuralNetwork:
 
-    def __init__(self, input_node_count, output_node_count, hidden_node_count,
+    def __init__(self, input_node_count, output_node_count, hidden_layers,
                  learning_rate, activation_fn):
         self.in_node_count = input_node_count
         self.out_node_count = output_node_count
-        self.hidden_node_count = hidden_node_count
+        self.layers = [self.in_node_count, *hidden_layers, self.out_node_count]
+        self.layer_count = len(self.layers)
         self.learn_rate = learning_rate
         self.activation_fn = activation_fn
-        self.weight_ih, self.weight_ho = None, None
+        self.weights = []
 
         self.initialise_weight_matrices()
 
     # Build initial weight matrices based around truncated normal distributions
     def initialise_weight_matrices(self):
-        # Generate randomised in->hidden weights from a truncated normal dist
-        nr = 1. / np.sqrt(self.in_node_count)
-        trunc_norm = functions.truncated_norm(mean=0, sd=1, low=-nr, high=nr)
-        self.weight_ih = trunc_norm.rvs((self.hidden_node_count, self.in_node_count))
+        for i in range(1, self.layer_count):
+            input_nodes = self.layers[i - 1]
+            output_nodes = self.layers[i]
 
-        # Generate randomised hidden->out weights from an equivalent distribution
-        nr = 1. / np.sqrt(self.hidden_node_count)
-        trunc_norm = functions.truncated_norm(mean=0, sd=1, low=-nr, high=nr)
-        self.weight_ho = trunc_norm.rvs((self.out_node_count, self.hidden_node_count))
+            # Generate randomised inter-layer weights from a truncated normal dist
+            n = input_nodes * output_nodes
+            nr = 1. / np.sqrt(input_nodes)
+            trunc_norm = functions.truncated_norm(mean=0, sd=1, low=-nr, high=nr)
+
+            weights = trunc_norm.rvs(n).reshape((output_nodes, input_nodes))
+            self.weights.append(weights)
 
     # Execute training and adjust network weights for the given set of training data, for a set number of epochs
     def train(self, epochs, input_data, target_labels_vec):
@@ -38,43 +41,40 @@ class NeuralNetwork:
     def train_item(self, input_vec, target_vec):
         input_vec, target_vec = (np.array(x, ndmin=2).T for x in [input_vec, target_vec])
 
-        # Input -> hidden layer
-        out_vec = np.dot(self.weight_ih, input_vec)
-        output_hidden = self.activation_fn(out_vec)
+        # Evaluate through each network layer
+        layer_results, output = [input_vec], None
+        for layer in range(self.layer_count - 1):
+            output = self.activation_fn(
+                np.dot(self.weights[layer], layer_results[-1])
+            )
 
-        # Hidden layer -> output
-        out_vec = np.dot(self.weight_ho, output_hidden)
-        output_network = self.activation_fn(out_vec)
+            layer_results.append(output)
 
-        # Calculate and adjust for output errors
-        output_errors = target_vec - output_network
-        adjustment = np.dot(output_errors * output_network * (1.0 - output_network), output_hidden.T)
-        adjustment *= self.learn_rate
+        # Back-propagate to tune network weights
+        output_errors = target_vec - output
+        for layer in range(self.layer_count - 1, 0, -1):
+            layer_out = layer_results[layer]
+            layer_in = layer_results[layer - 1]
 
-        self.weight_ho += adjustment
+            adjustment = np.dot(output_errors * layer_out * (1.0 - layer_out), layer_in.T)
+            self.weights[layer - 1] += (adjustment * self.learn_rate)
 
-        # Calculate and adjust for hidden layer errors
-        hidden_errors = np.dot(self.weight_ho.T, output_errors)
-        adjustment = np.dot(hidden_errors * output_hidden * (1.0 - output_hidden), input_vec.T)
-        adjustment *= self.learn_rate
-
-        self.weight_ih += adjustment
+            output_errors = np.dot(self.weights[layer - 1].T, output_errors)
 
     # Evaluate the given input data against the network
     def execute(self, input_vec):
         input_vec = np.array(input_vec, ndmin=2).T
+        output_vec = None
 
-        # Process hidden layer
-        result = self.activation_fn(
-            np.dot(self.weight_ih, input_vec)
-        )
+        # Apply each network later in turn
+        for layer in range(1, self.layer_count):
+            output_vec = self.activation_fn(
+                np.dot(self.weights[layer - 1], input_vec)
+            )
 
-        # Process output layer
-        result = self.activation_fn(
-            np.dot(self.weight_ho, result)
-        )
+            input_vec = output_vec
 
-        return result
+        return output_vec
 
     # Evaluate the given data and calculate a confusion matrix
     def confusion_matrix(self, data, labels):
@@ -108,19 +108,3 @@ class NeuralNetwork:
     def evaluate(self, data, labels):
         matches = sum(self.execute(x).argmax() == labels[i][0] for i, x in enumerate(data))
         return matches, len(data)-matches
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
