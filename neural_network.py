@@ -6,12 +6,13 @@ import functions
 class NeuralNetwork:
 
     def __init__(self, input_node_count, output_node_count, hidden_layers,
-                 learning_rate, activation_fn):
+                 learning_rate, bias, activation_fn):
         self.in_node_count = input_node_count
         self.out_node_count = output_node_count
         self.layers = [self.in_node_count, *hidden_layers, self.out_node_count]
         self.layer_count = len(self.layers)
         self.learn_rate = learning_rate
+        self.bias = bias
         self.activation_fn = activation_fn
         self.weights = []
 
@@ -19,20 +20,21 @@ class NeuralNetwork:
 
     # Build initial weight matrices based around truncated normal distributions
     def initialise_weight_matrices(self):
+        bias_node = 1 if self.bias else 0
         for i in range(1, self.layer_count):
             input_nodes = self.layers[i - 1]
             output_nodes = self.layers[i]
 
             # Generate randomised inter-layer weights from a truncated normal dist
-            n = input_nodes * output_nodes
+            n = (input_nodes + bias_node) * output_nodes
             nr = 1. / np.sqrt(input_nodes)
             trunc_norm = functions.truncated_norm(mean=0, sd=1, low=-nr, high=nr)
 
-            weights = trunc_norm.rvs(n).reshape((output_nodes, input_nodes))
+            weights = trunc_norm.rvs(n).reshape((output_nodes, input_nodes + bias_node))
             self.weights.append(weights)
 
     # Execute training and adjust network weights for the given set of training data, for a set number of epochs
-    def train(self, epochs, input_data, target_labels_vec):
+    def train(self, input_data, target_labels_vec, epochs=1):
         for epoch in range(epochs):
             for x in zip(input_data, target_labels_vec):
                 self.train_item(*x)
@@ -44,6 +46,9 @@ class NeuralNetwork:
         # Evaluate through each network layer
         layer_results, output = [input_vec], None
         for layer in range(self.layer_count - 1):
+            if self.bias:
+                layer_results[-1] = np.concatenate((layer_results[-1], [[self.bias]]))
+
             output = self.activation_fn(
                 np.dot(self.weights[layer], layer_results[-1])
             )
@@ -56,13 +61,22 @@ class NeuralNetwork:
             layer_out = layer_results[layer]
             layer_in = layer_results[layer - 1]
 
+            if self.bias and layer != self.layer_count-1:
+                layer_out = layer_out[:-1, :].copy()
+
             adjustment = np.dot(output_errors * layer_out * (1.0 - layer_out), layer_in.T)
             self.weights[layer - 1] += (adjustment * self.learn_rate)
 
             output_errors = np.dot(self.weights[layer - 1].T, output_errors)
 
+            if self.bias:
+                output_errors = output_errors[:-1, :]
+
     # Evaluate the given input data against the network
     def execute(self, input_vec):
+        if self.bias:
+            input_vec = np.concatenate((input_vec, [self.bias]))
+
         input_vec = np.array(input_vec, ndmin=2).T
         output_vec = None
 
@@ -73,6 +87,8 @@ class NeuralNetwork:
             )
 
             input_vec = output_vec
+            if self.bias:
+                input_vec = np.concatenate((input_vec, [[self.bias]]))
 
         return output_vec
 

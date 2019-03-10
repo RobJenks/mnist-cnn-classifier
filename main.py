@@ -20,13 +20,14 @@ def main():
     test_labels_vec = one_hot_labels(test_labels, mnist.label_count())
 
     network = NeuralNetwork(input_node_count=mnist.image_size(),
-                            hidden_layers=[100] * 1,
+                            hidden_layers=[100],
                             output_node_count=10,
                             learning_rate=0.1,
+                            bias=1,
                             activation_fn=functions.sigmoid_logistic)
 
     print("Training network...")
-    network.train(1, train_data, train_labels_vec)
+    network.train(train_data, train_labels_vec, epochs=1)
 
     print("\nSample test predictions with confidence:")
     for i in range(20):
