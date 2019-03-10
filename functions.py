@@ -4,7 +4,7 @@ from scipy.special import expit
 
 
 @np.vectorize
-def sigmoid(x):
+def sigmoid_logistic_direct(x):
     return 1. / (1. + (np.e ** -x))
 
 
