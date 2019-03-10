@@ -65,7 +65,7 @@ def render_classified_data_sample(network, data, sample_n):
         if rendered[prediction] != sample_n:
             img[prediction*mnist.image_dimensions():prediction*mnist.image_dimensions() + mnist.image_dimensions(),
                 rendered[prediction]*mnist.image_dimensions():rendered[prediction]*mnist.image_dimensions() + mnist.image_dimensions()
-            ] = data[ix].reshape(28, 28)
+            ] = data[ix].reshape(mnist.image_dimensions(), mnist.image_dimensions())
 
             rendered[prediction] += 1
 
