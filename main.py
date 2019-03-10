@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import mnist
+import mnist, functions
+from neural_network import NeuralNetwork
 
 
 def main():
@@ -16,10 +17,11 @@ def main():
     train_labels = one_hot_labels(train_labels, mnist.label_count())
     test_labels = one_hot_labels(test_labels, mnist.label_count())
 
-    show_image(train_data[12])
+    nn = NeuralNetwork(10, 5, 20, 0.01, functions.sigmoid)
+    nn.initialise_weight_matrices()
 
 
-# One-hot representation for a value within the given value range
+# One-hot representation for labels within the given value range
 def one_hot_labels(labels, label_range: int):
     rng = np.arange(label_range)
     return [[0.99 if x == 1 else 0.01 for x in (rng == label).astype(np.float)] for label in labels]
