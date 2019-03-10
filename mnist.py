@@ -4,6 +4,7 @@ import numpy as np
 import pickle
 import zipfile as zip
 
+
 def image_dimensions() -> int:
     return 28   # Standard mnist dataset dimensions
 

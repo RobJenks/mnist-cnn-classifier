@@ -1,5 +1,6 @@
 import numpy as np
-import mnist, functions
+import mnist
+import functions
 
 
 class NeuralNetwork:
@@ -91,19 +92,21 @@ class NeuralNetwork:
         return conf
 
     # Returns precision of the network predictions for a given label, based on the provided conf matrix
-    def precision(self, label, confusion_matrix):
+    @staticmethod
+    def precision(label, confusion_matrix):
         # (correct predictions / total predictions) for the label
         column = confusion_matrix[:, label]
         return confusion_matrix[label, label] / column.sum()
 
     # Returns recall of the network predictions for a given label, based on the provided conf matrix
-    def recall(self, label, confusion_matrix):
+    @staticmethod
+    def recall(label, confusion_matrix):
         row = confusion_matrix[label, :]
         return confusion_matrix[label, label] / row.sum()
     
     # Execute the network and assess performance against the given label set.  Returns (passes, fails)
     def evaluate(self, data, labels):
-        matches = sum(self.execute(x) == labels[i] for i, x in enumerate(data))
+        matches = sum(self.execute(x).argmax() == labels[i][0] for i, x in enumerate(data))
         return matches, len(data)-matches
 
 
