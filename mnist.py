@@ -1,8 +1,18 @@
 import os.path
 from typing import Tuple
+from enum import IntEnum
 import numpy as np
 import pickle
-import zipfile as zip
+import zipfile
+
+
+class Type(IntEnum):
+    Modified = 0
+    Extended = 1
+
+
+def resolve_type(typ: Type):
+    return TYPES[typ][0]
 
 
 def image_dimensions() -> int:
@@ -13,8 +23,8 @@ def image_size() -> int:
     return image_dimensions() * image_dimensions()
 
 
-def label_count() -> int:
-    return 10   # mnist digit classification [0 9]
+def label_count(typ: Type) -> int:
+    return TYPES[typ][1]
 
 
 # Returns a tuple (normalised-data, labels) for the given dataset
@@ -26,20 +36,20 @@ def get_labelled_data(path):
     )
 
 
-def labelled_training_data():
-    return read_binary("data/mnist-digit-train.binary")
+def labelled_training_data(typ: Type):
+    return read_binary(f"data/mnist-{resolve_type(typ)}-train.binary")
 
 
-def labelled_test_data():
-    return read_binary("data/mnist-digit-test.binary")
+def labelled_test_data(typ: Type):
+    return read_binary(f"data/mnist-{resolve_type(typ)}-test.binary")
 
 
-def labelled_training_source_data():
-    return get_labelled_data("data/mnist-digit-train.csv")
+def labelled_training_source_data(typ: Type):
+    return get_labelled_data(f"data/mnist-{resolve_type(typ)}-train.csv")
 
 
-def labelled_test_source_data():
-    return get_labelled_data("data/mnist-digit-test.csv")
+def labelled_test_source_data(typ: Type):
+    return get_labelled_data(f"data/mnist-{resolve_type(typ)}-test.csv")
 
 
 # Normalises mnist data from 0-255 grayscale down to (0 1) EXCLUSIVE range
@@ -60,27 +70,34 @@ def read_binary(path: str) -> Tuple:
 
 
 # Generate binary versions of source data
-def generate_binary_data():
+def generate_binary_data(typ: Type):
     # Unzip compressed raw data
-    extract_compressed("data/mnist-digit-train.zip", "data")
-    extract_compressed("data/mnist-digit-test.zip", "data")
+    extract_compressed(f"data/mnist-{resolve_type(typ)}-train.zip", "data")
+    extract_compressed(f"data/mnist-{resolve_type(typ)}-test.zip", "data")
 
     # Generate binary representations
-    write_binary(labelled_training_source_data(), "data/mnist-digit-train.binary")
-    write_binary(labelled_test_source_data(), "data/mnist-digit-test.binary")
+    write_binary(labelled_training_source_data(typ), f"data/mnist-{resolve_type(typ)}-train.binary")
+    write_binary(labelled_test_source_data(typ), f"data/mnist-{resolve_type(typ)}-test.binary")
 
     # Delete raw source data
-    os.remove("data/mnist-digit-train.csv")
-    os.remove("data/mnist-digit-test.csv")
+    os.remove(f"data/mnist-{resolve_type(typ)}-train.csv")
+    os.remove(f"data/mnist-{resolve_type(typ)}-test.csv")
 
 
 # Check whether binary versions of source data currently exist
-def binary_data_available() -> bool:
-    return os.path.isfile("data/mnist-digit-train.binary") \
-       and os.path.isfile("data/mnist-digit-test.binary")
+def binary_data_available(typ: Type) -> bool:
+    return os.path.isfile(f"data/mnist-{resolve_type(typ)}-train.binary") \
+       and os.path.isfile(f"data/mnist-{resolve_type(typ)}-test.binary")
 
 
 def extract_compressed(path, target_directory):
-    file = zip.ZipFile(path, 'r')
+    file = zipfile.ZipFile(path, 'r')
     file.extractall(target_directory)
     file.close()
+
+
+# Mapping of supported *NIST types
+TYPES = {
+    Type.Modified: ("modified", 10),
+    Type.Extended: ("extended", 62)
+}

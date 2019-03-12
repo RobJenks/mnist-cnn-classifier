@@ -1,5 +1,4 @@
 import numpy as np
-import mnist
 import functions
 
 
@@ -91,8 +90,8 @@ class NeuralNetwork:
         return output_vec
 
     # Evaluate the given data and calculate a confusion matrix
-    def confusion_matrix(self, data, labels):
-        conf = np.zeros((mnist.label_count(), mnist.label_count()), int)
+    def confusion_matrix(self, data, labels, label_count):
+        conf = np.zeros((label_count, label_count), int)
 
         # Evaluate against the network
         for i, x in enumerate(data):
