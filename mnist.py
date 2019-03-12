@@ -36,7 +36,7 @@ def get_label_mappings(typ: Type) -> Tuple[Dict,  List]:
     if not os.path.isfile(mapping_path):
         mapping = {x: x for x in range(label_count(typ))}
     else:
-        mapping = {int(y): int(x) for x, y in [line.split() for line in util.read_file(mapping_path)]}
+        mapping = {int(y): int(x) for x, y in [line.split() for line in util.read_file(mapping_path).splitlines(False)]}
 
     reverse_mapping = [-1] * label_count(typ)
     for (x, y) in mapping.items():
@@ -117,5 +117,5 @@ def extract_compressed(path, target_directory):
 # Mapping of supported *NIST types
 TYPES = {
     Type.Modified: ("modified", 10),
-    Type.Extended: ("extended", 62)
+    Type.Extended: ("extended", 47)
 }

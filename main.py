@@ -18,17 +18,15 @@ def execute(t: mnist.Type):
     print("Initialising network and datasets...")
     train_data, train_labels = mnist.labelled_training_data(t)
     test_data, test_labels = mnist.labelled_test_data(t)
-
-    # Translate labels based on any label mapping ( * -> [0 n) )
     label_mapping, reverse_label_mapping = mnist.get_label_mappings(t)
-    apply_label_mapping(train_labels, label_mapping)
 
     # Use one-hot label representation for CNN classification
     train_labels_vec = one_hot_labels(train_labels, mnist.label_count(t))
 
-    network = NeuralNetwork(input_node_count=mnist.image_size(),
-                            hidden_layers=[100],
-                            output_node_count=10,
+    config = get_network_configuration(t)
+    network = NeuralNetwork(input_node_count=config[0],
+                            hidden_layers=config[1:-1],
+                            output_node_count=config[-1],
                             learning_rate=0.1,
                             bias=1,
                             activation_fn=functions.sigmoid_logistic)
@@ -55,6 +53,16 @@ def execute(t: mnist.Type):
     render_classified_data_sample(network, test_data, 20, mnist.label_count(t))
 
 
+# Return a network layer configuration for each target dataset type
+def get_network_configuration(t: mnist.Type):
+    config = {
+        mnist.Type.Modified: [mnist.image_size(), 100, mnist.label_count(t)],
+        mnist.Type.Extended: [mnist.image_size(), 100, mnist.label_count(t)]
+    }
+
+    return config[t]
+
+
 # One-hot representation for labels within the given value range
 def one_hot_labels(labels, label_range: int):
     rng = np.arange(label_range)
@@ -64,7 +72,7 @@ def one_hot_labels(labels, label_range: int):
 # Apply a label mapping from ( * -> [0 n) )
 def apply_label_mapping(labels, label_mapping):
     for i in range(len(labels)):
-        labels[i][0] = label_mapping[labels[i][0]]
+        labels[i][0] = label_mapping[int(labels[i][0])]
 
 
 def render_classified_data_sample(network, data, sample_n, label_count):
