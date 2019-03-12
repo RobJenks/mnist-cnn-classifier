@@ -1,9 +1,10 @@
 import os.path
-from typing import Tuple
+from typing import Tuple, List, Dict
 from enum import IntEnum
 import numpy as np
 import pickle
 import zipfile
+import util
 
 
 class Type(IntEnum):
@@ -25,6 +26,23 @@ def image_size() -> int:
 
 def label_count(typ: Type) -> int:
     return TYPES[typ][1]
+
+
+# Return label mappings (label -> index, index -> label)
+def get_label_mappings(typ: Type) -> Tuple[Dict,  List]:
+    mapping_path = f"data/mnist-{resolve_type(typ)}-label-mapping.txt"
+
+    # Generate default if no explicit mapping is provided
+    if not os.path.isfile(mapping_path):
+        mapping = {x: x for x in range(label_count(typ))}
+    else:
+        mapping = {int(y): int(x) for x, y in [line.split() for line in util.read_file(mapping_path)]}
+
+    reverse_mapping = [-1] * label_count(typ)
+    for (x, y) in mapping.items():
+        reverse_mapping[y] = x
+
+    return mapping, reverse_mapping
 
 
 # Returns a tuple (normalised-data, labels) for the given dataset

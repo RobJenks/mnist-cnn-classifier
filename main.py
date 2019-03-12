@@ -19,9 +19,12 @@ def execute(t: mnist.Type):
     train_data, train_labels = mnist.labelled_training_data(t)
     test_data, test_labels = mnist.labelled_test_data(t)
 
+    # Translate labels based on any label mapping ( * -> [0 n) )
+    label_mapping, reverse_label_mapping = mnist.get_label_mappings(t)
+    apply_label_mapping(train_labels, label_mapping)
+
     # Use one-hot label representation for CNN classification
     train_labels_vec = one_hot_labels(train_labels, mnist.label_count(t))
-    test_labels_vec = one_hot_labels(test_labels, mnist.label_count(t))
 
     network = NeuralNetwork(input_node_count=mnist.image_size(),
                             hidden_layers=[100],
@@ -56,6 +59,12 @@ def execute(t: mnist.Type):
 def one_hot_labels(labels, label_range: int):
     rng = np.arange(label_range)
     return [[0.99 if x == 1 else 0.01 for x in (rng == label).astype(np.float)] for label in labels]
+
+
+# Apply a label mapping from ( * -> [0 n) )
+def apply_label_mapping(labels, label_mapping):
+    for i in range(len(labels)):
+        labels[i][0] = label_mapping[labels[i][0]]
 
 
 def render_classified_data_sample(network, data, sample_n, label_count):
