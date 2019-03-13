@@ -6,7 +6,7 @@ from neural_network import NeuralNetwork
 
 
 def main():
-    execute(mnist.Type.Modified)
+    execute(mnist.Type.Extended)
 
 
 def execute(t: mnist.Type):
@@ -50,14 +50,14 @@ def execute(t: mnist.Type):
     for i in range(mnist.label_count(t)):
         print(f"Data item {i}: Precision = {network.precision(i, conf)}, Recall = {network.recall(i, conf)}")
 
-    render_classified_data_sample(network, test_data, 20, mnist.label_count(t))
+    render_classified_data_sample(network, test_data, 20, t)
 
 
 # Return a network layer configuration for each target dataset type
 def get_network_configuration(t: mnist.Type):
     config = {
         mnist.Type.Modified: [mnist.image_size(), 100, mnist.label_count(t)],
-        mnist.Type.Extended: [mnist.image_size(), 100, mnist.label_count(t)]
+        mnist.Type.Extended: [mnist.image_size(), 360, mnist.label_count(t)]
     }
 
     return config[t]
@@ -75,18 +75,25 @@ def apply_label_mapping(labels, label_mapping):
         labels[i][0] = label_mapping[int(labels[i][0])]
 
 
-def render_classified_data_sample(network, data, sample_n, label_count):
-    img = np.zeros(shape=(
-        label_count * mnist.image_dimensions(),
-        sample_n * mnist.image_dimensions()))
+def render_classified_data_sample(network, data, sample_n, t: mnist.Type):
+    size = mnist.image_dimensions()
 
-    ix, rendered = 0, [0] * label_count
+    dim = (mnist.label_count(t) * size, sample_n * size)
+    flip_canvas = (mnist.label_count(t) > sample_n)
+    img = np.zeros(shape=tuple(reversed(dim)) if flip_canvas else dim)
+
+    ix, rendered = 0, [0] * mnist.label_count(t)
     while any(x != sample_n for x in rendered):
         prediction = network.execute(data[ix]).argmax()
         if rendered[prediction] != sample_n:
-            img[prediction*mnist.image_dimensions():prediction*mnist.image_dimensions() + mnist.image_dimensions(),
-                rendered[prediction]*mnist.image_dimensions():rendered[prediction]*mnist.image_dimensions() + mnist.image_dimensions()
-            ] = data[ix].reshape(mnist.image_dimensions(), mnist.image_dimensions())
+            px, py = prediction*size, rendered[prediction]*size
+            if flip_canvas:
+                px, py = py, px
+
+            if mnist.transpose_output(t):
+                img[px:px+size, py:py+size] = np.transpose(data[ix].reshape(size, size))
+            else:
+                img[px:px+size, py:py+size] = data[ix].reshape(size, size)
 
             rendered[prediction] += 1
 

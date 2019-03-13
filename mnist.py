@@ -28,6 +28,10 @@ def label_count(typ: Type) -> int:
     return TYPES[typ][1]
 
 
+def transpose_output(typ: Type) -> bool:
+    return TYPES[typ][2]
+
+
 # Return label mappings (label -> index, index -> label)
 def get_label_mappings(typ: Type) -> Tuple[Dict,  List]:
     mapping_path = f"data/mnist-{resolve_type(typ)}-label-mapping.txt"
@@ -116,6 +120,6 @@ def extract_compressed(path, target_directory):
 
 # Mapping of supported *NIST types
 TYPES = {
-    Type.Modified: ("modified", 10),
-    Type.Extended: ("extended", 47)
+    Type.Modified: ("modified", 10, False),
+    Type.Extended: ("extended", 47, True)
 }
