@@ -1,19 +1,23 @@
 import numpy as np
+import json
 import functions
 
 
 class NeuralNetwork:
 
     def __init__(self, input_node_count, output_node_count, hidden_layers,
-                 learning_rate, bias, activation_fn):
+                 learning_rate, bias, activation_fn, initial_weights=None):
         self.layers = [input_node_count, *hidden_layers, output_node_count]
         self.layer_count = len(self.layers)
         self.learn_rate = learning_rate
         self.bias = bias
         self.activation_fn = activation_fn
-        self.weights = []
 
-        self.initialise_weight_matrices()
+        if initial_weights is not None:
+            self.weights = initial_weights
+        else:
+            self.weights = []
+            self.initialise_weight_matrices()
 
     # Build initial weight matrices based around truncated normal distributions
     def initialise_weight_matrices(self):
@@ -129,8 +133,29 @@ class NeuralNetwork:
     def recall(label, confusion_matrix):
         row = confusion_matrix[label, :]
         return confusion_matrix[label, label] / row.sum()
+
+    # Default node activation function, where not otherwise specified
+    @staticmethod
+    def default_activation_fn():
+        return functions.sigmoid_logistic
     
     # Execute the network and assess performance against the given label set.  Returns (passes, fails)
     def evaluate(self, data, labels):
         matches = sum(self.execute(x).argmax() == labels[i][0] for i, x in enumerate(data))
         return matches, len(data)-matches
+
+    # Serialise and store network state to the given path
+    def save_network_state(self, path):
+        with open(path, "w") as file:
+            json.dump((self.layers, self.learn_rate, self.bias, [x.tolist() for x in self.weights]), file)
+
+    # Load a serialised network state from the given path and return the instantiated network
+    @staticmethod
+    def load_network_state(path):
+        with open(path, "br") as file:
+            (layers, learn_rate, bias, weights) = json.load(file)
+
+            return NeuralNetwork(layers[0], layers[-1], layers[1:-1],
+                                 learn_rate, bias, NeuralNetwork.default_activation_fn(),
+                                 np.array(weights))
+

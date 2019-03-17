@@ -1,16 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 import random
+import json
 import mnist
 import functions
 from neural_network import NeuralNetwork
 
 
 def main():
-    execute(mnist.Type.Extended)
+    execute(
+        mnist.Type.Extended,
+        'load-network' in sys.argv,
+        'save-network' in sys.argv,
+        'skip-stats' in sys.argv
+    )
 
 
-def execute(t: mnist.Type):
+def execute(t: mnist.Type, load_network: bool, save_network: bool, skip_stats: bool):
     if not mnist.binary_data_available(t):
         print("Generating binary dataset on first-run for faster read times; this is a one-time activity...")
         mnist.generate_binary_data(t)
@@ -24,38 +31,49 @@ def execute(t: mnist.Type):
     # Use one-hot label representation for CNN classification
     train_labels_vec = one_hot_labels(train_labels, mnist.label_count(t))
 
-    config = get_network_configuration(t)
-    network = NeuralNetwork(input_node_count=config[0],
-                            hidden_layers=config[1:-1],
-                            output_node_count=config[-1],
-                            learning_rate=0.1,
-                            bias=1,
-                            activation_fn=functions.sigmoid_logistic)
+    # Either generate and train the network, or load a saved binary network state
+    if load_network:
+        print("Loading stored network state")
+        network = NeuralNetwork.load_network_state("data/network-state.json")
+    else:
+        config = get_network_configuration(t)
+        print(f"Generating network (config={config})")
+        network = NeuralNetwork(input_node_count=config[0],
+                                hidden_layers=config[1:-1],
+                                output_node_count=config[-1],
+                                learning_rate=0.1,
+                                bias=1,
+                                activation_fn=functions.sigmoid_logistic)
 
-    print("Training network...")
-    network.train(train_data, train_labels_vec, epochs=1)
+        print("Training network...")
+        network.train(train_data, train_labels_vec, epochs=1)
 
-    print("\nSample test predictions with confidence:")
-    for i in range(20):
-        result = network.execute(test_data[i])
-        print(int(test_labels[i][0]), np.argmax(result), np.max(result))
+    if not skip_stats:
+        print("\nSample test predictions with confidence:")
+        for i in range(20):
+            result = network.execute(test_data[i])
+            print(int(test_labels[i][0]), np.argmax(result), np.max(result))
 
-    for x in [("training", train_data, train_labels), ("test", test_data, test_labels)]:
-        matches, fails = network.evaluate(*x[1:3])
-        print("Accuracy over {} data: {}".format(x[0], matches / (matches + fails)))
+        for x in [("training", train_data, train_labels), ("test", test_data, test_labels)]:
+            matches, fails = network.evaluate(*x[1:3])
+            print("Accuracy over {} data: {}".format(x[0], matches / (matches + fails)))
 
-    conf = network.confusion_matrix(train_data, train_labels, mnist.label_count(t))
-    print("\nNetwork confusion matrix:")
-    print(conf)
+        conf = network.confusion_matrix(train_data, train_labels, mnist.label_count(t))
+        print("\nNetwork confusion matrix:")
+        print(conf)
 
-    for i in range(mnist.label_count(t)):
-        print(f"Data item {i}: Precision = {network.precision(i, conf)}, Recall = {network.recall(i, conf)}")
+        for i in range(mnist.label_count(t)):
+            print(f"Data item {i}: Precision = {network.precision(i, conf)}, Recall = {network.recall(i, conf)}")
 
+    if save_network:
+        print("Saving network state...")
+        network.save_network_state("data/network-state.json")
+
+    # Render sample of classified results
     render_classified_data_sample(network, test_data, 20, t)
 
     print("\nClassifying test data...")
     classified_data = network.classify_data(test_data, reverse_label_mapping)
-    #classified_data = {x: [random.choice(test_data)] for x in range(ord('A'), ord('Z')+1)}
 
     render_message("This is a test message\nAnd so is this", classified_data, t)
 
@@ -64,7 +82,7 @@ def execute(t: mnist.Type):
 def get_network_configuration(t: mnist.Type):
     config = {
         mnist.Type.Modified: [mnist.image_size(), 100, mnist.label_count(t)],
-        mnist.Type.Extended: [mnist.image_size(), 100, mnist.label_count(t)]
+        mnist.Type.Extended: [mnist.image_size(), 360, mnist.label_count(t)]
     }
 
     return config[t]
@@ -83,6 +101,7 @@ def apply_label_mapping(labels, label_mapping):
 
 
 def render_classified_data_sample(network, data, sample_n, t: mnist.Type):
+    data_size = len(data)
     size = mnist.image_dimensions()
 
     dim = (mnist.label_count(t) * size, sample_n * size)
@@ -90,7 +109,7 @@ def render_classified_data_sample(network, data, sample_n, t: mnist.Type):
     img = np.zeros(shape=tuple(reversed(dim)) if flip_canvas else dim)
 
     ix, rendered = 0, [0] * mnist.label_count(t)
-    while any(x != sample_n for x in rendered):
+    while any(x != sample_n for x in rendered) and ix != data_size:
         prediction = network.execute(data[ix]).argmax()
         if rendered[prediction] != sample_n:
             px, py = prediction*size, rendered[prediction]*size
