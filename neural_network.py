@@ -89,6 +89,19 @@ class NeuralNetwork:
 
         return output_vec
 
+    def classify_data(self, data, reverse_label_mapping=None):
+        mapping = (lambda x: reverse_label_mapping[x]) if reverse_label_mapping is not None else (lambda x: x)
+        result = {}
+
+        for x in data:
+            key = mapping(self.execute(x).argmax())
+            if result.get(key) is None:
+                result[key] = []
+
+            result[key] += [x]
+
+        return result
+
     # Evaluate the given data and calculate a confusion matrix
     def confusion_matrix(self, data, labels, label_count):
         conf = np.zeros((label_count, label_count), int)

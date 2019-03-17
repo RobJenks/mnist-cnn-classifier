@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 import mnist
 import functions
 from neural_network import NeuralNetwork
@@ -52,12 +53,18 @@ def execute(t: mnist.Type):
 
     render_classified_data_sample(network, test_data, 20, t)
 
+    print("\nClassifying test data...")
+    classified_data = network.classify_data(test_data, reverse_label_mapping)
+    #classified_data = {x: [random.choice(test_data)] for x in range(ord('A'), ord('Z')+1)}
+
+    render_message("This is a test message\nAnd so is this", classified_data, t)
+
 
 # Return a network layer configuration for each target dataset type
 def get_network_configuration(t: mnist.Type):
     config = {
         mnist.Type.Modified: [mnist.image_size(), 100, mnist.label_count(t)],
-        mnist.Type.Extended: [mnist.image_size(), 360, mnist.label_count(t)]
+        mnist.Type.Extended: [mnist.image_size(), 100, mnist.label_count(t)]
     }
 
     return config[t]
@@ -103,10 +110,57 @@ def render_classified_data_sample(network, data, sample_n, t: mnist.Type):
     plt.show()
 
 
+def render_message(msg: str, classified_data, t: mnist.Type):
+    size = mnist.image_dimensions()
+    msg = msg.upper()
+
+    allowed_chars = set(x for x in [*classified_data, ord(' '), ord('\n')])
+    if any(ord(x) not in allowed_chars for x in msg):
+        print(f"Cannot render message \"{msg}\"; dataset does not include all required characters")
+        print(f"Disallowed chars: {set(x for x in msg if ord(x) not in allowed_chars)}")
+        return
+
+    space_size = int(float(size) * 0.6)
+    line_count = 1 + sum((1 if x == '\n' else 0) for x in msg)
+    longest_line_size = longest_line_length(msg, size, space_size)
+
+    img = np.zeros(shape=((line_count*size), longest_line_size))
+    transform = np.transpose if mnist.transpose_output(t) else lambda x: x
+    px, py = 0, 0
+    for x in msg:
+        if x == ' ':
+            px += space_size
+        elif x == '\n':
+            py += size
+            px = 0
+        else:
+            img[py:py+size, px:px+size] = transform(random.choice(classified_data.get(ord(x))).reshape(size, size))
+            px += size
+
+    plt.imshow(img, cmap="Greys")
+    plt.show()
+
+
 def show_image(data):
     img = data.reshape((mnist.image_dimensions(), mnist.image_dimensions()))
     plt.imshow(img, cmap="Greys")
     plt.show()
+
+
+# Returns the length of the longest line in the supplied string, given the respective pixel widths of each char type
+def longest_line_length(s: str, letter_width, space_width) -> int:
+    longest, length = 0, 0
+
+    for x in s:
+        if x == '\n':
+            longest = max(longest, length)
+            length = 0
+        elif x == ' ':
+            length += space_width
+        else:
+            length += letter_width
+
+    return max(longest, length)
 
 
 if __name__ == "__main__":
