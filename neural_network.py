@@ -146,13 +146,13 @@ class NeuralNetwork:
 
     # Serialise and store network state to the given path
     def save_network_state(self, path):
-        with open(path, "w") as file:
+        with open(path, 'w') as file:
             json.dump((self.layers, self.learn_rate, self.bias, [x.tolist() for x in self.weights]), file)
 
     # Load a serialised network state from the given path and return the instantiated network
     @staticmethod
     def load_network_state(path):
-        with open(path, "br") as file:
+        with open(path, 'r') as file:
             (layers, learn_rate, bias, weights) = json.load(file)
 
             return NeuralNetwork(layers[0], layers[-1], layers[1:-1],
