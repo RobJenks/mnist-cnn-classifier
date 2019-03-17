@@ -157,5 +157,5 @@ class NeuralNetwork:
 
             return NeuralNetwork(layers[0], layers[-1], layers[1:-1],
                                  learn_rate, bias, NeuralNetwork.default_activation_fn(),
-                                 np.array(weights))
+                                 [np.array(x) for x in weights])
 
